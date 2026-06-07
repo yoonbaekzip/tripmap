@@ -95,14 +95,6 @@
       background: #dc2626;
     }
 
-    .like {
-      background: #2563eb;
-    }
-
-    .dislike {
-      background: #ef4444;
-    }
-
     .route {
       background: #16a34a;
     }
@@ -129,9 +121,37 @@
 
     .actions {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 6px;
       margin-top: 8px;
+    }
+
+    .icon-btn,
+    .route,
+    .danger {
+      font-size: 20px;
+      padding: 8px;
+      min-height: 42px;
+    }
+
+    .icon-btn {
+      background: #e5e7eb;
+      color: #111827;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .active-like {
+      background: #2563eb !important;
+      color: white !important;
+    }
+
+    .active-dislike {
+      background: #ef4444 !important;
+      color: white !important;
     }
 
     .summary {
@@ -183,8 +203,6 @@
         <button class="search-btn" onclick="searchPlace()">검색</button>
       </div>
 
-      <div class="small">검색하면 위도·경도가 자동 입력돼. 안 되면 직접 입력하면 돼.</div>
-
       <h2>장소 추가</h2>
 
       <input type="text" id="placeName" placeholder="장소 이름" />
@@ -214,7 +232,7 @@
         <input type="number" step="any" id="lng" placeholder="경도" />
       </div>
 
-      <input type="number" id="cost" placeholder="예상 경비 / 엔화" />
+      <input type="number" id="cost" placeholder="예상 경비" />
 
       <textarea id="memo" placeholder="메모: 예약 시간, 메뉴, 입장료 등"></textarea>
 
@@ -330,7 +348,7 @@
       const keyword = document.getElementById("searchKeyword").value.trim();
 
       if (!keyword) {
-        alert("검색어를 입력해줘.");
+        alert("검색어를 입력해주세요");
         return;
       }
 
@@ -346,7 +364,7 @@
         const data = await response.json();
 
         if (!data.length) {
-          alert("검색 결과가 없어. 장소명을 조금 더 자세히 입력해봐.");
+          alert("검색 결과가 없습니다. 장소명을 조금 더 자세히 입력해주세요.");
           return;
         }
 
@@ -358,7 +376,7 @@
 
         map.setView([result.lat, result.lon], 16);
       } catch (error) {
-        alert("검색에 실패했어. 위도와 경도를 직접 입력해줘.");
+        alert("검색에 실패했습니다. 위도와 경도를 직접 입력해주세요.");
       }
     }
 
@@ -374,7 +392,7 @@
       const memo = document.getElementById("memo").value.trim();
 
       if (!name || !date || isNaN(lat) || isNaN(lng)) {
-        alert("장소 이름, 날짜, 위도, 경도는 꼭 입력해야 해.");
+        alert("장소 이름, 날짜, 위도, 경도는 꼭 입력되어야 합니다.");
         return;
       }
 
@@ -479,7 +497,7 @@
             ${place.date} ${place.time}<br>
             ${categoryNames[place.category]}<br>
             예상 경비: ${Number(place.cost || 0).toLocaleString()}엔<br>
-            ${place.rating || ""}
+            추천: ${place.rating || "아직 없음"}
           `);
 
         markers.push(marker);
@@ -500,10 +518,29 @@
           <span class="badge">${categoryNames[place.category]}</span>
 
           <div class="actions">
-            <button class="like" onclick="event.stopPropagation(); ratePlace(${place.id}, '좋았음 👍')">좋았음</button>
-            <button class="dislike" onclick="event.stopPropagation(); ratePlace(${place.id}, '싫었음 👎')">싫었음</button>
-            <button class="route" onclick="event.stopPropagation(); openGoogleMap(${place.lat}, ${place.lng})">길찾기</button>
-            <button class="danger" onclick="event.stopPropagation(); deletePlace(${place.id})">삭제</button>
+            <button
+              class="icon-btn ${place.rating === '👍' ? 'active-like' : ''}"
+              onclick="event.stopPropagation(); ratePlace(${place.id}, '👍')">
+              👍
+            </button>
+
+            <button
+              class="icon-btn ${place.rating === '👎' ? 'active-dislike' : ''}"
+              onclick="event.stopPropagation(); ratePlace(${place.id}, '👎')">
+              👎
+            </button>
+
+            <button
+              class="route"
+              onclick="event.stopPropagation(); openGoogleMap(${place.lat}, ${place.lng})">
+              🧭
+            </button>
+
+            <button
+              class="danger"
+              onclick="event.stopPropagation(); deletePlace(${place.id})">
+              🗑️
+            </button>
           </div>
         `;
 
@@ -522,16 +559,21 @@
     }
 
     function ratePlace(id, rating) {
-      places = places.map(place =>
-        place.id === id ? { ...place, rating } : place
-      );
+      places = places.map(place => {
+        if (place.id !== id) return place;
+
+        return {
+          ...place,
+          rating: place.rating === rating ? "" : rating
+        };
+      });
 
       savePlaces();
       renderPlaces();
     }
 
     function deletePlace(id) {
-      if (!confirm("이 장소를 삭제할까?")) return;
+      if (!confirm("이 장소를 삭제할까요?")) return;
 
       places = places.filter(place => place.id !== id);
       savePlaces();
