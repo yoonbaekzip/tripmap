@@ -22,6 +22,7 @@ let trips = JSON.parse(localStorage.getItem("travelTripsV4")) || [];
 let currentTripId = localStorage.getItem("currentTripIdV4") || null;
 let markers = [];
 let map;
+let tempMarker = null;
 
 function saveTrips() {
   localStorage.setItem("travelTripsV4", JSON.stringify(trips));
@@ -239,10 +240,12 @@ function initMapIfNeeded() {
     attribution: "© OpenStreetMap"
   }).addTo(map);
 
-  map.on("click", function(e) {
-    document.getElementById("lat").value = e.latlng.lat.toFixed(6);
-    document.getElementById("lng").value = e.latlng.lng.toFixed(6);
-  });
+ map.on("click", function(e) {
+  document.getElementById("lat").value = e.latlng.lat.toFixed(6);
+  document.getElementById("lng").value = e.latlng.lng.toFixed(6);
+
+  setTempMarker(e.latlng.lat, e.latlng.lng);
+});
 }
 
 function clearMarkers() {
@@ -288,6 +291,34 @@ function getMarkerIcon(category) {
     iconSize: [24, 24],
     iconAnchor: [12, 24]
   });
+}
+function setTempMarker(lat, lng) {
+  if (!map) return;
+
+  if (tempMarker) {
+    map.removeLayer(tempMarker);
+  }
+
+  tempMarker = L.marker([lat, lng], {
+    icon: L.divIcon({
+      className: "temp-marker",
+      html: `
+        <div style="
+          background:#facc15;
+          width:28px;
+          height:28px;
+          border-radius:50% 50% 50% 0;
+          transform:rotate(-45deg);
+          border:3px solid white;
+          box-shadow:0 2px 8px rgba(0,0,0,0.45);
+        "></div>
+      `,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28]
+    })
+  }).addTo(map)
+    .bindPopup("선택한 위치")
+    .openPopup();
 }
 
 async function searchPlace() {
@@ -375,8 +406,16 @@ function addPlace() {
   clearPlaceForm();
   renderCurrentTripInfo();
   renderPlaces();
+  clearTempMarker();
 
   map.setView([lat, lng], 15);
+}
+
+function clearTempMarker() {
+  if (tempMarker) {
+    map.removeLayer(tempMarker);
+    tempMarker = null;
+  }
 }
 
 function clearPlaceForm() {
