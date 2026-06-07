@@ -91,6 +91,14 @@
       font-size: 18px;
     }
 
+    .cost-big {
+      margin-top: 10px;
+      font-size: 22px;
+      font-weight: bold;
+      line-height: 1.35;
+      color: #111827;
+    }
+
     .trip-menu-btn {
       width: 36px;
       height: 36px;
@@ -391,8 +399,12 @@
           <input type="number" step="any" id="lat" placeholder="위도" />
           <input type="number" step="any" id="lng" placeholder="경도" />
         </div>
+       
+        <div class="row">
+  	<input type="number" id="cost" placeholder="예상 경비 / 원" />
+  	<input type="number" id="localCost" placeholder="현지 통화" />
+        </div>
 
-        <input type="number" id="cost" placeholder="예상 경비 / 원" />
         <textarea id="memo" placeholder="메모: 예약 시간, 메뉴, 입장료 등"></textarea>
 
         <button onclick="addPlace()">장소 추가</button>

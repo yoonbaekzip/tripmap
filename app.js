@@ -107,6 +107,7 @@ function renderHome() {
 
   list.forEach(trip => {
     const totalCost = trip.places.reduce((sum, place) => sum + Number(place.cost || 0), 0);
+    const totalLocalCost = trip.places.reduce((sum, place) => sum + Number(place.localCost || 0),0);
 
     const card = document.createElement("div");
     card.className = "trip-card";
@@ -119,7 +120,12 @@ function renderHome() {
           <div class="small">
             기간: ${trip.startDate} ~ ${trip.endDate}<br>
             저장된 장소: ${trip.places.length}곳<br>
-            예상 경비: ${totalCost.toLocaleString()}원
+          </div>
+        </div>
+
+          <div class="cost-big">
+            ₩${totalCost.toLocaleString()}<br>
+            ¥${totalLocalCost.toLocaleString()}
           </div>
         </div>
 
@@ -371,6 +377,7 @@ function addPlace() {
   const lat = parseFloat(document.getElementById("lat").value);
   const lng = parseFloat(document.getElementById("lng").value);
   const cost = Number(document.getElementById("cost").value || 0);
+  const localCost = Number(document.getElementById("localCost").value || 0);
   const memo = document.getElementById("memo").value.trim();
 
   if (!name || !date || isNaN(lat) || isNaN(lng)) {
@@ -396,6 +403,7 @@ function addPlace() {
     lat,
     lng,
     cost,
+    localCost,
     memo,
     rating: ""
   };
@@ -424,6 +432,7 @@ function clearPlaceForm() {
   document.getElementById("lat").value = "";
   document.getElementById("lng").value = "";
   document.getElementById("cost").value = "";
+  document.getElementById("localCost").value = "";
   document.getElementById("memo").value = "";
 }
 
@@ -464,7 +473,7 @@ function renderSummary(filtered) {
 
   const totalPlaces = filtered.length;
   const totalCost = filtered.reduce((sum, place) => sum + Number(place.cost || 0), 0);
-
+  const totalLocalCost = filtered.reduce((sum, place) => sum + Number(place.localCost || 0),0);
   const categoryCount = {};
 
   filtered.forEach(place => {
@@ -479,6 +488,7 @@ function renderSummary(filtered) {
     <b>일정 요약</b><br>
     표시된 장소: ${totalPlaces}곳<br>
     예상 경비: ${totalCost.toLocaleString()}원<br>
+    현지 통화 합계: ${totalLocalCost.toLocaleString()}
     ${categoryText || "카테고리 없음"}
   `;
 }
@@ -503,6 +513,7 @@ function renderPlaces() {
         ${place.date} ${place.time}<br>
         ${categoryNames[place.category]}<br>
         예상 경비: ${Number(place.cost || 0).toLocaleString()}원<br>
+        현지 통화: ${Number(place.localCost || 0).toLocaleString()}
         추천: ${place.rating || "아직 없음"}
       `);
 
