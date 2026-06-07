@@ -119,7 +119,7 @@ function renderHome() {
           <div class="small">
             기간: ${trip.startDate} ~ ${trip.endDate}<br>
             저장된 장소: ${trip.places.length}곳<br>
-            예상 경비: ${totalCost.toLocaleString()}엔
+            예상 경비: ${totalCost.toLocaleString()}원
           </div>
         </div>
 
@@ -478,7 +478,7 @@ function renderSummary(filtered) {
   summaryBox.innerHTML = `
     <b>일정 요약</b><br>
     표시된 장소: ${totalPlaces}곳<br>
-    예상 경비: ${totalCost.toLocaleString()}엔<br>
+    예상 경비: ${totalCost.toLocaleString()}원<br>
     ${categoryText || "카테고리 없음"}
   `;
 }
@@ -502,7 +502,7 @@ function renderPlaces() {
         <b>${place.name}</b><br>
         ${place.date} ${place.time}<br>
         ${categoryNames[place.category]}<br>
-        예상 경비: ${Number(place.cost || 0).toLocaleString()}엔<br>
+        예상 경비: ${Number(place.cost || 0).toLocaleString()}원<br>
         추천: ${place.rating || "아직 없음"}
       `);
 
@@ -517,7 +517,7 @@ function renderPlaces() {
 
       <div class="small">
         ${place.date} / ${categoryNames[place.category]}<br>
-        예상 경비: ${Number(place.cost || 0).toLocaleString()}엔<br>
+        예상 경비: ${Number(place.cost || 0).toLocaleString()}원<br>
         추천: ${place.rating || "아직 없음"}<br>
         메모: ${place.memo || "없음"}
       </div>
