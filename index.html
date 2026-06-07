@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>여행 플래너 지도 앱 v2</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#111827" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 14px 18px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
+      display: flex;
+      height: calc(100vh - 56px);
+    }
+
+    .sidebar {
+      width: 42%;
+      min-width: 390px;
+      padding: 14px;
+      overflow-y: auto;
+      background: #f9fafb;
+      border-right: 1px solid #ddd;
+    }
+
+    #map {
+      width: 58%;
+      height: 100%;
+    }
+
+    h2 {
+      margin: 12px 0 8px;
+      font-size: 17px;
+    }
+
+    input, select, button, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    button {
+      border: none;
+      background: #111827;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover { opacity: 0.9; }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row > * { flex: 1; }
+
+    .sub-btn {
+      background: #374151;
+    }
+
+    .search-btn {
+      background: #2563eb;
+    }
+
+    .danger {
+      background: #dc2626;
+    }
+
+    .like {
+      background: #2563eb;
+    }
+
+    .dislike {
+      background: #ef4444;
+    }
+
+    .route {
+      background: #16a34a;
+    }
+
+    .place-card {
+      background: white;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 12px;
+      border-left: 7px solid #999;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+    }
+
+    .place-card h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .summary {
+      background: #e5e7eb;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 850px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        min-width: unset;
+        height: 52%;
+      }
+
+      #map {
+        width: 100%;
+        height: 48%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>여행 플래너 지도 앱 v2</header>
+
+  <div class="container">
+    <div class="sidebar">
+      <h2>장소 검색</h2>
+
+      <div class="row">
+        <input type="text" id="searchKeyword" placeholder="예: 난바 장어 맛집" />
+        <button class="search-btn" onclick="searchPlace()">검색</button>
+      </div>
+
+      <div class="small">검색하면 위도·경도가 자동 입력돼. 안 되면 직접 입력하면 돼.</div>
+
+      <h2>장소 추가</h2>
+
+      <input type="text" id="placeName" placeholder="장소 이름" />
+
+      <select id="category">
+        <option value="food">맛집</option>
+        <option value="cafe">카페</option>
+        <option value="tour">관광지</option>
+        <option value="shopping">쇼핑</option>
+        <option value="hotel">숙소</option>
+        <option value="transport">교통</option>
+        <option value="etc">기타</option>
+      </select>
+
+      <input type="date" id="date" />
+
+      <div class="row">
+        <input list="hourList" id="hour" placeholder="시" />
+        <input list="minuteList" id="minute" placeholder="분" />
+      </div>
+
+      <datalist id="hourList"></datalist>
+      <datalist id="minuteList"></datalist>
+
+      <div class="row">
+        <input type="number" step="any" id="lat" placeholder="위도" />
+        <input type="number" step="any" id="lng" placeholder="경도" />
+      </div>
+
+      <input type="number" id="cost" placeholder="예상 경비 / 엔화" />
+
+      <textarea id="memo" placeholder="메모: 예약 시간, 메뉴, 입장료 등"></textarea>
+
+      <button onclick="addPlace()">장소 추가</button>
+
+      <hr />
+
+      <h2>일정 조회</h2>
+
+      <input type="date" id="filterDate" onchange="renderPlaces()" />
+
+      <select id="filterCategory" onchange="renderPlaces()">
+        <option value="all">전체 카테고리</option>
+        <option value="food">맛집</option>
+        <option value="cafe">카페</option>
+        <option value="tour">관광지</option>
+        <option value="shopping">쇼핑</option>
+        <option value="hotel">숙소</option>
+        <option value="transport">교통</option>
+        <option value="etc">기타</option>
+      </select>
+
+      <div class="summary" id="summaryBox"></div>
+
+      <div class="row">
+        <button class="sub-btn" onclick="exportData()">백업 저장</button>
+        <button class="sub-btn" onclick="document.getElementById('importFile').click()">백업 불러오기</button>
+      </div>
+
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+
+      <div id="placeList"></div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    const categoryColors = {
+      food: "#ef4444",
+      cafe: "#a16207",
+      tour: "#16a34a",
+      shopping: "#9333ea",
+      hotel: "#2563eb",
+      transport: "#0891b2",
+      etc: "#6b7280"
+    };
+
+    const categoryNames = {
+      food: "맛집",
+      cafe: "카페",
+      tour: "관광지",
+      shopping: "쇼핑",
+      hotel: "숙소",
+      transport: "교통",
+      etc: "기타"
+    };
+
+    let places = JSON.parse(localStorage.getItem("travelPlacesV2")) || [];
+    let markers = [];
+
+    const map = L.map("map").setView([34.6937, 135.5023], 13);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    function createHourMinuteOptions() {
+      const hourList = document.getElementById("hourList");
+      const minuteList = document.getElementById("minuteList");
+
+      for (let i = 0; i < 24; i++) {
+        const option = document.createElement("option");
+        option.value = String(i).padStart(2, "0");
+        hourList.appendChild(option);
+      }
+
+      for (let i = 0; i < 60; i += 10) {
+        const option = document.createElement("option");
+        option.value = String(i).padStart(2, "0");
+        minuteList.appendChild(option);
+      }
+    }
+
+    function savePlaces() {
+      localStorage.setItem("travelPlacesV2", JSON.stringify(places));
+    }
+
+    function getMarkerIcon(category) {
+      const color = categoryColors[category] || "#6b7280";
+
+      return L.divIcon({
+        className: "custom-marker",
+        html: `
+          <div style="
+            background:${color};
+            width:24px;
+            height:24px;
+            border-radius:50% 50% 50% 0;
+            transform:rotate(-45deg);
+            border:2px solid white;
+            box-shadow:0 2px 5px rgba(0,0,0,0.35);
+          "></div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 24]
+      });
+    }
+
+    async function searchPlace() {
+      const keyword = document.getElementById("searchKeyword").value.trim();
+
+      if (!keyword) {
+        alert("검색어를 입력해줘.");
+        return;
+      }
+
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(keyword)}&limit=1`;
+
+      try {
+        const response = await fetch(url, {
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+
+        const data = await response.json();
+
+        if (!data.length) {
+          alert("검색 결과가 없어. 장소명을 조금 더 자세히 입력해봐.");
+          return;
+        }
+
+        const result = data[0];
+
+        document.getElementById("placeName").value = result.display_name.split(",")[0];
+        document.getElementById("lat").value = Number(result.lat).toFixed(6);
+        document.getElementById("lng").value = Number(result.lon).toFixed(6);
+
+        map.setView([result.lat, result.lon], 16);
+      } catch (error) {
+        alert("검색에 실패했어. 위도와 경도를 직접 입력해줘.");
+      }
+    }
+
+    function addPlace() {
+      const name = document.getElementById("placeName").value.trim();
+      const category = document.getElementById("category").value;
+      const date = document.getElementById("date").value;
+      const hourInput = document.getElementById("hour").value.trim();
+      const minuteInput = document.getElementById("minute").value.trim();
+      const lat = parseFloat(document.getElementById("lat").value);
+      const lng = parseFloat(document.getElementById("lng").value);
+      const cost = Number(document.getElementById("cost").value || 0);
+      const memo = document.getElementById("memo").value.trim();
+
+      if (!name || !date || isNaN(lat) || isNaN(lng)) {
+        alert("장소 이름, 날짜, 위도, 경도는 꼭 입력해야 해.");
+        return;
+      }
+
+      const hour = hourInput ? hourInput.padStart(2, "0") : "00";
+      const minute = minuteInput ? minuteInput.padStart(2, "0") : "00";
+      const time = `${hour}:${minute}`;
+
+      const place = {
+        id: Date.now(),
+        name,
+        category,
+        date,
+        time,
+        lat,
+        lng,
+        cost,
+        memo,
+        rating: ""
+      };
+
+      places.push(place);
+      savePlaces();
+      clearForm();
+      renderPlaces();
+
+      map.setView([lat, lng], 15);
+    }
+
+    function clearForm() {
+      document.getElementById("placeName").value = "";
+      document.getElementById("searchKeyword").value = "";
+      document.getElementById("lat").value = "";
+      document.getElementById("lng").value = "";
+      document.getElementById("cost").value = "";
+      document.getElementById("memo").value = "";
+    }
+
+    function getFilteredPlaces() {
+      const filterDate = document.getElementById("filterDate").value;
+      const filterCategory = document.getElementById("filterCategory").value;
+
+      let filtered = [...places];
+
+      if (filterDate) {
+        filtered = filtered.filter(place => place.date === filterDate);
+      }
+
+      if (filterCategory !== "all") {
+        filtered = filtered.filter(place => place.category === filterCategory);
+      }
+
+      filtered.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return a.time.localeCompare(b.time);
+      });
+
+      return filtered;
+    }
+
+    function renderSummary(filtered) {
+      const summaryBox = document.getElementById("summaryBox");
+
+      const totalPlaces = filtered.length;
+      const totalCost = filtered.reduce((sum, place) => sum + Number(place.cost || 0), 0);
+
+      const categoryCount = {};
+
+      filtered.forEach(place => {
+        categoryCount[place.category] = (categoryCount[place.category] || 0) + 1;
+      });
+
+      const categoryText = Object.keys(categoryCount)
+        .map(key => `${categoryNames[key]} ${categoryCount[key]}곳`)
+        .join(" · ");
+
+      summaryBox.innerHTML = `
+        <b>일정 요약</b><br>
+        장소: ${totalPlaces}곳<br>
+        예상 경비: ${totalCost.toLocaleString()}엔<br>
+        ${categoryText || "카테고리 없음"}
+      `;
+    }
+
+    function renderPlaces() {
+      const list = document.getElementById("placeList");
+      list.innerHTML = "";
+
+      markers.forEach(marker => map.removeLayer(marker));
+      markers = [];
+
+      const filtered = getFilteredPlaces();
+
+      renderSummary(filtered);
+
+      filtered.forEach(place => {
+        const marker = L.marker([place.lat, place.lng], {
+          icon: getMarkerIcon(place.category)
+        })
+          .addTo(map)
+          .bindPopup(`
+            <b>${place.name}</b><br>
+            ${place.date} ${place.time}<br>
+            ${categoryNames[place.category]}<br>
+            예상 경비: ${Number(place.cost || 0).toLocaleString()}엔<br>
+            ${place.rating || ""}
+          `);
+
+        markers.push(marker);
+
+        const card = document.createElement("div");
+        card.className = "place-card";
+        card.style.borderLeftColor = categoryColors[place.category];
+
+        card.innerHTML = `
+          <h3>${place.time} - ${place.name}</h3>
+          <div class="small">
+            ${place.date} / ${categoryNames[place.category]}<br>
+            예상 경비: ${Number(place.cost || 0).toLocaleString()}엔<br>
+            위도: ${place.lat}, 경도: ${place.lng}<br>
+            추천: ${place.rating || "아직 없음"}<br>
+            메모: ${place.memo || "없음"}
+          </div>
+          <span class="badge">${categoryNames[place.category]}</span>
+
+          <div class="actions">
+            <button class="like" onclick="event.stopPropagation(); ratePlace(${place.id}, '좋았음 👍')">좋았음</button>
+            <button class="dislike" onclick="event.stopPropagation(); ratePlace(${place.id}, '싫었음 👎')">싫었음</button>
+            <button class="route" onclick="event.stopPropagation(); openGoogleMap(${place.lat}, ${place.lng})">길찾기</button>
+            <button class="danger" onclick="event.stopPropagation(); deletePlace(${place.id})">삭제</button>
+          </div>
+        `;
+
+        card.onclick = () => {
+          map.setView([place.lat, place.lng], 16);
+          marker.openPopup();
+        };
+
+        list.appendChild(card);
+      });
+
+      if (filtered.length > 0) {
+        const bounds = filtered.map(place => [place.lat, place.lng]);
+        map.fitBounds(bounds, { padding: [40, 40] });
+      }
+    }
+
+    function ratePlace(id, rating) {
+      places = places.map(place =>
+        place.id === id ? { ...place, rating } : place
+      );
+
+      savePlaces();
+      renderPlaces();
+    }
+
+    function deletePlace(id) {
+      if (!confirm("이 장소를 삭제할까?")) return;
+
+      places = places.filter(place => place.id !== id);
+      savePlaces();
+      renderPlaces();
+    }
+
+    function openGoogleMap(lat, lng) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank");
+    }
+
+    function exportData() {
+      const dataStr = JSON.stringify(places, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "travel-map-backup.json";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+
+          if (!Array.isArray(imported)) {
+            alert("올바른 백업 파일이 아니야.");
+            return;
+          }
+
+          places = imported;
+          savePlaces();
+          renderPlaces();
+
+          alert("백업을 불러왔어.");
+        } catch {
+          alert("파일을 불러오지 못했어.");
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    map.on("click", function(e) {
+      document.getElementById("lat").value = e.latlng.lat.toFixed(6);
+      document.getElementById("lng").value = e.latlng.lng.toFixed(6);
+    });
+
+    createHourMinuteOptions();
+    renderPlaces();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+  </script>
+</body>
+</html>
