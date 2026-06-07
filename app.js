@@ -37,11 +37,13 @@ function sortedTrips() {
     if (a.startDate !== b.startDate) {
       return b.startDate.localeCompare(a.startDate);
     }
+
     return b.id - a.id;
   });
 }
 
 function openNewTripModal() {
+  closeAllTripMenus();
   document.getElementById("newTripModal").classList.add("active");
 }
 
@@ -110,11 +112,29 @@ function renderHome() {
     card.onclick = () => openTrip(trip.id);
 
     card.innerHTML = `
-      <h3>${trip.name}</h3>
-      <div class="small">
-        기간: ${trip.startDate} ~ ${trip.endDate}<br>
-        저장된 장소: ${trip.places.length}곳<br>
-        예상 경비: ${totalCost.toLocaleString()}엔
+      <div class="trip-header">
+        <div>
+          <h3>${trip.name}</h3>
+          <div class="small">
+            기간: ${trip.startDate} ~ ${trip.endDate}<br>
+            저장된 장소: ${trip.places.length}곳<br>
+            예상 경비: ${totalCost.toLocaleString()}엔
+          </div>
+        </div>
+
+        <button
+          class="trip-menu-btn"
+          onclick="event.stopPropagation(); toggleTripMenu(${trip.id})">
+          ⋮
+        </button>
+      </div>
+
+      <div id="tripMenu-${trip.id}" class="trip-menu">
+        <button
+          class="delete-option"
+          onclick="event.stopPropagation(); deleteTripFromHome(${trip.id})">
+          🗑️ 삭제
+        </button>
       </div>
     `;
 
@@ -122,7 +142,50 @@ function renderHome() {
   });
 }
 
+function toggleTripMenu(id) {
+  const targetMenu = document.getElementById(`tripMenu-${id}`);
+
+  if (!targetMenu) return;
+
+  const isActive = targetMenu.classList.contains("active");
+
+  closeAllTripMenus();
+
+  if (!isActive) {
+    targetMenu.classList.add("active");
+  }
+}
+
+function closeAllTripMenus() {
+  document.querySelectorAll(".trip-menu").forEach(menu => {
+    menu.classList.remove("active");
+  });
+}
+
+function deleteTripFromHome(id) {
+  const trip = trips.find(item => String(item.id) === String(id));
+
+  if (!trip) return;
+
+  if (!confirm(`'${trip.name}' 여행을 삭제할까?\n저장된 장소도 모두 삭제돼.`)) {
+    closeAllTripMenus();
+    return;
+  }
+
+  trips = trips.filter(item => String(item.id) !== String(id));
+
+  if (String(currentTripId) === String(id)) {
+    currentTripId = null;
+  }
+
+  saveTrips();
+  closeAllTripMenus();
+  renderHome();
+}
+
 function openTrip(id) {
+  closeAllTripMenus();
+
   currentTripId = id;
   saveTrips();
 
@@ -165,26 +228,6 @@ function renderCurrentTripInfo() {
     기간: ${trip.startDate} ~ ${trip.endDate}<br>
     저장된 장소: ${trip.places.length}곳
   `;
-}
-
-function deleteCurrentTrip() {
-  const trip = getCurrentTrip();
-
-  if (!trip) {
-    alert("삭제할 여행이 없어.");
-    return;
-  }
-
-  if (!confirm(`'${trip.name}' 여행을 삭제할까? 저장된 장소도 모두 삭제돼.`)) {
-    return;
-  }
-
-  trips = trips.filter(item => String(item.id) !== String(currentTripId));
-  currentTripId = null;
-
-  saveTrips();
-  clearMarkers();
-  goHome();
 }
 
 function initMapIfNeeded() {
@@ -571,6 +614,10 @@ function importData(event) {
 
   reader.readAsText(file);
 }
+
+document.addEventListener("click", function() {
+  closeAllTripMenus();
+});
 
 createHourMinuteOptions();
 renderHome();

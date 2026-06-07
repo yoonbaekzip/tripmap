@@ -38,13 +38,8 @@
       display: none;
     }
 
-    .screen {
-      display: none;
-    }
-
-    .screen.active {
-      display: block;
-    }
+    .screen { display: none; }
+    .screen.active { display: block; }
 
     .home {
       padding: 18px;
@@ -74,6 +69,7 @@
     }
 
     .trip-card {
+      position: relative;
       background: white;
       padding: 16px;
       border-radius: 16px;
@@ -83,15 +79,73 @@
       border-left: 7px solid #2563eb;
     }
 
+    .trip-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
     .trip-card h3 {
       margin: 0 0 6px;
       font-size: 18px;
     }
 
+    .trip-menu-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #111827;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .trip-menu {
+      display: none;
+      position: absolute;
+      top: 52px;
+      right: 14px;
+      width: 130px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      z-index: 50;
+      overflow: hidden;
+    }
+
+    .trip-menu.active {
+      display: block;
+    }
+
+    .trip-menu button {
+      margin: 0;
+      border-radius: 0;
+      background: white;
+      color: #111827;
+      text-align: left;
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    .trip-menu button:hover {
+      background: #f3f4f6;
+    }
+
+    .trip-menu .delete-option {
+      color: #dc2626;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.5;
+    }
+
     .trip-card .small {
       color: #6b7280;
-      font-size: 13px;
-      line-height: 1.5;
     }
 
     .empty {
@@ -191,12 +245,6 @@
     .place-card h3 {
       margin: 0 0 6px;
       font-size: 16px;
-    }
-
-    .small {
-      font-size: 13px;
-      color: #555;
-      line-height: 1.5;
     }
 
     .badge {
@@ -369,10 +417,6 @@
         <div class="row">
           <button class="sub-btn" onclick="exportData()">백업 저장</button>
           <button class="sub-btn" onclick="document.getElementById('importFile').click()">백업 불러오기</button>
-        </div>
-
-        <div class="row">
-          <button class="danger" onclick="deleteCurrentTrip()">현재 여행 삭제</button>
         </div>
 
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
