@@ -18,23 +18,35 @@ const categoryNames = {
   etc: "기타"
 };
 
-let trips = JSON.parse(localStorage.getItem("travelTripsV3")) || [];
-let currentTripId = localStorage.getItem("currentTripIdV3") || null;
+let trips = JSON.parse(localStorage.getItem("travelTripsV4")) || [];
+let currentTripId = localStorage.getItem("currentTripIdV4") || null;
 let markers = [];
-
-const map = L.map("map").setView([34.6937, 135.5023], 13);
-
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap"
-}).addTo(map);
+let map;
 
 function saveTrips() {
-  localStorage.setItem("travelTripsV3", JSON.stringify(trips));
-  localStorage.setItem("currentTripIdV3", currentTripId || "");
+  localStorage.setItem("travelTripsV4", JSON.stringify(trips));
+  localStorage.setItem("currentTripIdV4", currentTripId || "");
 }
 
 function getCurrentTrip() {
   return trips.find(trip => String(trip.id) === String(currentTripId));
+}
+
+function sortedTrips() {
+  return [...trips].sort((a, b) => {
+    if (a.startDate !== b.startDate) {
+      return b.startDate.localeCompare(a.startDate);
+    }
+    return b.id - a.id;
+  });
+}
+
+function openNewTripModal() {
+  document.getElementById("newTripModal").classList.add("active");
+}
+
+function closeNewTripModal() {
+  document.getElementById("newTripModal").classList.remove("active");
 }
 
 function addTrip() {
@@ -57,6 +69,7 @@ function addTrip() {
     name,
     startDate,
     endDate,
+    createdAt: new Date().toISOString(),
     places: []
   };
 
@@ -67,86 +80,133 @@ function addTrip() {
   document.getElementById("tripStartDate").value = "";
   document.getElementById("tripEndDate").value = "";
 
+  closeNewTripModal();
   saveTrips();
-  renderTrips();
-  renderPlaces();
+  renderHome();
+  openTrip(trip.id);
 }
 
-function deleteTrip() {
-  const trip = getCurrentTrip();
+function renderHome() {
+  const tripList = document.getElementById("tripList");
+  tripList.innerHTML = "";
 
-  if (!trip) {
-    alert("삭제할 계획이 없어.");
+  const list = sortedTrips();
+
+  if (list.length === 0) {
+    tripList.innerHTML = `
+      <div class="empty">
+        아직 여행 계획이 없어.<br>
+        + New Trip 버튼으로 새 여행을 만들어줘.
+      </div>
+    `;
     return;
   }
 
-  if (!confirm(`'${trip.name}' 계획을 삭제할까? 안에 저장된 장소도 모두 삭제돼.`)) {
-    return;
-  }
+  list.forEach(trip => {
+    const totalCost = trip.places.reduce((sum, place) => sum + Number(place.cost || 0), 0);
 
-  trips = trips.filter(item => String(item.id) !== String(currentTripId));
-  currentTripId = trips.length ? trips[0].id : null;
+    const card = document.createElement("div");
+    card.className = "trip-card";
+    card.onclick = () => openTrip(trip.id);
 
-  saveTrips();
-  renderTrips();
-  renderPlaces();
-}
+    card.innerHTML = `
+      <h3>${trip.name}</h3>
+      <div class="small">
+        기간: ${trip.startDate} ~ ${trip.endDate}<br>
+        저장된 장소: ${trip.places.length}곳<br>
+        예상 경비: ${totalCost.toLocaleString()}엔
+      </div>
+    `;
 
-function changeTrip() {
-  currentTripId = document.getElementById("tripSelect").value;
-  saveTrips();
-  renderTripInfo();
-  renderPlaces();
-}
-
-function renderTrips() {
-  const tripSelect = document.getElementById("tripSelect");
-
-  tripSelect.innerHTML = "";
-
-  if (trips.length === 0) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "여행 계획을 먼저 추가해줘";
-    tripSelect.appendChild(option);
-    currentTripId = null;
-    renderTripInfo();
-    return;
-  }
-
-  if (!currentTripId || !trips.some(trip => String(trip.id) === String(currentTripId))) {
-    currentTripId = trips[0].id;
-  }
-
-  trips.forEach(trip => {
-    const option = document.createElement("option");
-    option.value = trip.id;
-    option.textContent = `${trip.name} (${trip.startDate} ~ ${trip.endDate})`;
-
-    if (String(trip.id) === String(currentTripId)) {
-      option.selected = true;
-    }
-
-    tripSelect.appendChild(option);
+    tripList.appendChild(card);
   });
-
-  renderTripInfo();
 }
 
-function renderTripInfo() {
-  const tripInfo = document.getElementById("tripInfo");
+function openTrip(id) {
+  currentTripId = id;
+  saveTrips();
+
+  document.getElementById("homeScreen").classList.remove("active");
+  document.getElementById("detailScreen").classList.add("active");
+  document.getElementById("backBtn").style.display = "inline-block";
+
+  const trip = getCurrentTrip();
+  document.getElementById("headerTitle").textContent = trip ? trip.name : "Travel Planner";
+
+  initMapIfNeeded();
+
+  setTimeout(() => {
+    map.invalidateSize();
+    renderCurrentTripInfo();
+    renderPlaces();
+  }, 100);
+}
+
+function goHome() {
+  document.getElementById("detailScreen").classList.remove("active");
+  document.getElementById("homeScreen").classList.add("active");
+  document.getElementById("backBtn").style.display = "none";
+  document.getElementById("headerTitle").textContent = "Travel Planner";
+
+  renderHome();
+}
+
+function renderCurrentTripInfo() {
+  const box = document.getElementById("currentTripInfo");
   const trip = getCurrentTrip();
 
   if (!trip) {
-    tripInfo.innerHTML = "선택된 여행 계획이 없습니다.";
+    box.innerHTML = "선택된 여행이 없어.";
     return;
   }
 
-  tripInfo.innerHTML = `
+  box.innerHTML = `
     <b>${trip.name}</b><br>
     기간: ${trip.startDate} ~ ${trip.endDate}<br>
     저장된 장소: ${trip.places.length}곳
   `;
+}
+
+function deleteCurrentTrip() {
+  const trip = getCurrentTrip();
+
+  if (!trip) {
+    alert("삭제할 여행이 없어.");
+    return;
+  }
+
+  if (!confirm(`'${trip.name}' 여행을 삭제할까? 저장된 장소도 모두 삭제돼.`)) {
+    return;
+  }
+
+  trips = trips.filter(item => String(item.id) !== String(currentTripId));
+  currentTripId = null;
+
+  saveTrips();
+  clearMarkers();
+  goHome();
+}
+
+function initMapIfNeeded() {
+  if (map) return;
+
+  map = L.map("map").setView([34.6937, 135.5023], 13);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
+
+  map.on("click", function(e) {
+    document.getElementById("lat").value = e.latlng.lat.toFixed(6);
+    document.getElementById("lng").value = e.latlng.lng.toFixed(6);
+  });
+}
+
+function clearMarkers() {
+  if (!map) return;
+
+  markers.forEach(marker => map.removeLayer(marker));
+  markers = [];
 }
 
 function createHourMinuteOptions() {
@@ -199,9 +259,7 @@ async function searchPlace() {
 
   try {
     const response = await fetch(url, {
-      headers: {
-        "Accept": "application/json"
-      }
+      headers: { "Accept": "application/json" }
     });
 
     const data = await response.json();
@@ -227,7 +285,7 @@ function addPlace() {
   const trip = getCurrentTrip();
 
   if (!trip) {
-    alert("먼저 여행 계획을 만들어줘.");
+    alert("먼저 여행 계획을 선택해줘.");
     return;
   }
 
@@ -254,14 +312,13 @@ function addPlace() {
 
   const hour = hourInput ? hourInput.padStart(2, "0") : "00";
   const minute = minuteInput ? minuteInput.padStart(2, "0") : "00";
-  const time = `${hour}:${minute}`;
 
   const place = {
     id: Date.now(),
     name,
     category,
     date,
-    time,
+    time: `${hour}:${minute}`,
     lat,
     lng,
     cost,
@@ -272,14 +329,14 @@ function addPlace() {
   trip.places.push(place);
 
   saveTrips();
-  clearForm();
-  renderTrips();
+  clearPlaceForm();
+  renderCurrentTripInfo();
   renderPlaces();
 
   map.setView([lat, lng], 15);
 }
 
-function clearForm() {
+function clearPlaceForm() {
   document.getElementById("placeName").value = "";
   document.getElementById("searchKeyword").value = "";
   document.getElementById("lat").value = "";
@@ -319,7 +376,7 @@ function renderSummary(filtered) {
   const trip = getCurrentTrip();
 
   if (!trip) {
-    summaryBox.innerHTML = "여행 계획을 먼저 추가해줘.";
+    summaryBox.innerHTML = "여행을 선택해줘.";
     return;
   }
 
@@ -337,8 +394,7 @@ function renderSummary(filtered) {
     .join(" · ");
 
   summaryBox.innerHTML = `
-    <b>${trip.name} 일정 요약</b><br>
-    기간: ${trip.startDate} ~ ${trip.endDate}<br>
+    <b>일정 요약</b><br>
     표시된 장소: ${totalPlaces}곳<br>
     예상 경비: ${totalCost.toLocaleString()}엔<br>
     ${categoryText || "카테고리 없음"}
@@ -349,13 +405,11 @@ function renderPlaces() {
   const list = document.getElementById("placeList");
   list.innerHTML = "";
 
-  markers.forEach(marker => map.removeLayer(marker));
-  markers = [];
+  clearMarkers();
 
   const filtered = getFilteredPlaces();
 
   renderSummary(filtered);
-  renderTripInfo();
 
   filtered.forEach(place => {
     const marker = L.marker([place.lat, place.lng], {
@@ -378,10 +432,10 @@ function renderPlaces() {
 
     card.innerHTML = `
       <h3>${place.time} - ${place.name}</h3>
+
       <div class="small">
         ${place.date} / ${categoryNames[place.category]}<br>
         예상 경비: ${Number(place.cost || 0).toLocaleString()}엔<br>
-        위도: ${place.lat}, 경도: ${place.lng}<br>
         추천: ${place.rating || "아직 없음"}<br>
         메모: ${place.memo || "없음"}
       </div>
@@ -457,7 +511,7 @@ function deletePlace(id) {
   trip.places = trip.places.filter(place => place.id !== id);
 
   saveTrips();
-  renderTrips();
+  renderCurrentTripInfo();
   renderPlaces();
 }
 
@@ -467,7 +521,7 @@ function openGoogleMap(lat, lng) {
 
 function exportData() {
   const dataStr = JSON.stringify({
-    version: 3,
+    version: 4,
     trips
   }, null, 2);
 
@@ -476,7 +530,7 @@ function exportData() {
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "travel-planner-backup-v3.json";
+  a.download = "travel-planner-backup-v4.json";
   a.click();
 
   URL.revokeObjectURL(url);
@@ -493,28 +547,21 @@ function importData(event) {
     try {
       const imported = JSON.parse(e.target.result);
 
-      if (Array.isArray(imported)) {
-        trips = [
-          {
-            id: Date.now(),
-            name: "가져온 여행 계획",
-            startDate: "",
-            endDate: "",
-            places: imported
-          }
-        ];
-      } else if (imported.trips && Array.isArray(imported.trips)) {
+      if (imported.trips && Array.isArray(imported.trips)) {
         trips = imported.trips;
       } else {
         alert("올바른 백업 파일이 아니야.");
         return;
       }
 
-      currentTripId = trips.length ? trips[0].id : null;
+      currentTripId = trips.length ? sortedTrips()[0].id : null;
 
       saveTrips();
-      renderTrips();
-      renderPlaces();
+      renderHome();
+
+      if (currentTripId) {
+        openTrip(currentTripId);
+      }
 
       alert("백업을 불러왔어.");
     } catch {
@@ -525,14 +572,8 @@ function importData(event) {
   reader.readAsText(file);
 }
 
-map.on("click", function(e) {
-  document.getElementById("lat").value = e.latlng.lat.toFixed(6);
-  document.getElementById("lng").value = e.latlng.lng.toFixed(6);
-});
-
 createHourMinuteOptions();
-renderTrips();
-renderPlaces();
+renderHome();
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
