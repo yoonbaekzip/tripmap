@@ -51,9 +51,7 @@
       color: white;
     }
 
-    .back-btn {
-      display: none;
-    }
+    .back-btn { display: none; }
 
     .screen { display: none; }
     .screen.active { display: block; }
@@ -113,7 +111,6 @@
       font-size: 22px;
       font-weight: bold;
       line-height: 1.35;
-      color: #111827;
     }
 
     .trip-menu-btn {
@@ -141,9 +138,7 @@
       overflow: hidden;
     }
 
-    .trip-menu.active {
-      display: block;
-    }
+    .trip-menu.active { display: block; }
 
     .trip-menu button {
       margin: 0;
@@ -155,18 +150,12 @@
       font-size: 14px;
     }
 
-    .trip-menu .delete-option {
-      color: #dc2626;
-    }
+    .trip-menu .delete-option { color: #dc2626; }
 
     .small {
       font-size: 13px;
       color: #555;
       line-height: 1.5;
-    }
-
-    .trip-card .small {
-      color: #6b7280;
     }
 
     .empty {
@@ -223,8 +212,6 @@
       cursor: pointer;
     }
 
-    button:hover { opacity: 0.9; }
-
     .row {
       display: flex;
       gap: 8px;
@@ -248,6 +235,14 @@
       margin: 10px 0;
     }
 
+    #placeFormBox {
+      background: white;
+      padding: 12px;
+      border-radius: 14px;
+      margin: 10px 0;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+    }
+
     .place-card {
       background: white;
       padding: 12px;
@@ -258,9 +253,7 @@
       cursor: grab;
     }
 
-    .place-card.dragging {
-      opacity: 0.5;
-    }
+    .place-card.dragging { opacity: 0.5; }
 
     .place-card h3 {
       margin: 0 0 6px;
@@ -324,9 +317,7 @@
       padding: 18px;
     }
 
-    .modal-bg.active {
-      display: flex;
-    }
+    .modal-bg.active { display: flex; }
 
     .modal {
       background: white;
@@ -336,34 +327,28 @@
       max-width: 420px;
     }
 
-    .modal h2 {
-      margin-top: 0;
+    .flatpickr-day.disabled,
+    .flatpickr-day.disabled:hover {
+      color: #cbd5e1 !important;
+      background: #f1f5f9 !important;
+      cursor: not-allowed !important;
     }
-    
-		.flatpickr-day.disabled,
-		.flatpickr-day.disabled:hover {
-		  color: #cbd5e1 !important;
-		  background: #f1f5f9 !important;
-		  cursor: not-allowed !important;
-		}
 
-		.flatpickr-day.selected,
-		.flatpickr-day.startRange,
-		.flatpickr-day.endRange {
-		  background: var(--main-color) !important;
-		  border-color: var(--main-color) !important;
-		}
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+      background: var(--main-color) !important;
+      border-color: var(--main-color) !important;
+    }
 
-		.flatpickr-day.inRange {
-		  background: #dbeafe !important;
-		  border-color: #dbeafe !important;
-		  color: #111827 !important;
-		}
-		
+    .flatpickr-day.inRange {
+      background: #dbeafe !important;
+      border-color: #dbeafe !important;
+      color: #111827 !important;
+    }
+
     @media (max-width: 850px) {
-      .app-layout {
-        flex-direction: column;
-      }
+      .app-layout { flex-direction: column; }
 
       .sidebar {
         width: 100%;
@@ -406,52 +391,57 @@
       <div class="sidebar">
         <div class="trip-info" id="currentTripInfo"></div>
 
-        <h2>장소 검색</h2>
-        <div class="row">
-          <input type="text" id="searchKeyword" placeholder="예: 오사카성" />
-          <button class="search-btn" onclick="searchPlace()">검색</button>
+        <button id="togglePlaceFormBtn" onclick="togglePlaceForm()">+ 장소 추가하기</button>
+
+        <div id="placeFormBox" style="display:none;">
+          <h2>장소 추가 / 수정</h2>
+
+          <input type="text" id="placeName" placeholder="장소 이름 *필수" />
+
+          <select id="category">
+            <option value="food">맛집</option>
+            <option value="cafe">카페</option>
+            <option value="tour">관광지</option>
+            <option value="shopping">쇼핑</option>
+            <option value="hotel">숙소</option>
+            <option value="transport">교통</option>
+            <option value="etc">기타</option>
+          </select>
+
+          <input type="date" id="date" />
+
+          <div class="row">
+            <input list="hourList" id="hour" placeholder="시 선택 또는 입력" />
+            <input list="minuteList" id="minute" placeholder="분 선택 또는 입력" />
+          </div>
+
+          <datalist id="hourList"></datalist>
+          <datalist id="minuteList"></datalist>
+
+          <div class="row">
+            <input type="text" id="searchKeyword" placeholder="장소검색 (예: 오사카성)" />
+            <button class="search-btn" onclick="searchPlace()">검색</button>
+          </div>
+
+          <div class="row">
+            <input type="number" step="any" id="lat" placeholder="위도 선택사항" />
+            <input type="number" step="any" id="lng" placeholder="경도 선택사항" />
+          </div>
+
+          <div class="small">
+            검색하면 위도·경도가 자동 입력됩니다. 지도 클릭 또는 직접 입력도 가능합니다.
+          </div>
+
+          <div class="row">
+            <input type="number" id="cost" placeholder="예상 경비 / 원" />
+            <input type="number" id="localCost" placeholder="현지 통화" />
+          </div>
+
+          <textarea id="memo" placeholder="메모: 예약 시간, 메뉴, 입장료 등"></textarea>
+
+          <button id="savePlaceBtn" onclick="savePlace()">장소 추가</button>
+          <button id="cancelEditBtn" class="sub-btn" onclick="cancelEdit()" style="display:none;">수정 취소</button>
         </div>
-
-        <div class="small">검색하면 위도·경도가 자동 입력됩니다. 지도 클릭 또는 직접 입력도 가능합니다.</div>
-
-        <h2>장소 추가 / 수정</h2>
-
-        <input type="text" id="placeName" placeholder="장소 이름 *필수" />
-
-        <select id="category">
-          <option value="food">맛집</option>
-          <option value="cafe">카페</option>
-          <option value="tour">관광지</option>
-          <option value="shopping">쇼핑</option>
-          <option value="hotel">숙소</option>
-          <option value="transport">교통</option>
-          <option value="etc">기타</option>
-        </select>
-
-        <input type="date" id="date" />
-
-        <div class="row">
-          <input list="hourList" id="hour" placeholder="시 선택 또는 입력" />
-          <input list="minuteList" id="minute" placeholder="분 선택 또는 입력" />
-        </div>
-
-        <datalist id="hourList"></datalist>
-        <datalist id="minuteList"></datalist>
-
-        <div class="row">
-          <input type="number" step="any" id="lat" placeholder="위도 선택사항" />
-          <input type="number" step="any" id="lng" placeholder="경도 선택사항" />
-        </div>
-
-        <div class="row">
-          <input type="number" id="cost" placeholder="예상 경비 / 원" />
-          <input type="number" id="localCost" placeholder="현지 통화" />
-        </div>
-
-        <textarea id="memo" placeholder="메모: 예약 시간, 메뉴, 입장료 등"></textarea>
-
-        <button id="savePlaceBtn" onclick="savePlace()">장소 추가</button>
-        <button id="cancelEditBtn" class="sub-btn" onclick="cancelEdit()" style="display:none;">수정 취소</button>
 
         <h2>일정 조회</h2>
 
@@ -490,15 +480,14 @@
 
       <input type="text" id="tripName" placeholder="계획 이름 예: 오사카 여행" />
 
-			<input type="text" id="tripDateRange" placeholder="여행 기간 선택" readonly />
+      <input type="text" id="tripDateRange" placeholder="여행 기간 선택" readonly />
+      <input type="hidden" id="tripStartDate" />
+      <input type="hidden" id="tripEndDate" />
 
-			<input type="hidden" id="tripStartDate" />
-			<input type="hidden" id="tripEndDate" />
+      <div class="small">
+        시작일을 선택하면 시작일 이전 날짜는 종료일로 선택할 수 없습니다.
+      </div>
 
-		<div class="small">
-  		시작일을 선택하면 시작일 이전 날짜는 종료일로 선택할 수 없습니다.
-		</div>
-		
       <button onclick="addTrip()">만들기</button>
       <button class="sub-btn" onclick="closeNewTripModal()">취소</button>
     </div>
@@ -531,7 +520,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-	<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

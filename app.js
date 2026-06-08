@@ -19,26 +19,11 @@ const categoryNames = {
 };
 
 const themePresets = {
-  midnight: {
-    main: "#111827",
-    bg: "#f3f4f6"
-  },
-  purple: {
-    main: "#4c1d95",
-    bg: "#f5f3ff"
-  },
-  emerald: {
-    main: "#065f46",
-    bg: "#ecfdf5"
-  },
-  wine: {
-    main: "#7f1d1d",
-    bg: "#fef2f2"
-  },
-  teal: {
-    main: "#134e4a",
-    bg: "#f0fdfa"
-  }
+  midnight: { main: "#111827", bg: "#f3f4f6" },
+  purple: { main: "#4c1d95", bg: "#f5f3ff" },
+  emerald: { main: "#065f46", bg: "#ecfdf5" },
+  wine: { main: "#7f1d1d", bg: "#fef2f2" },
+  teal: { main: "#134e4a", bg: "#f0fdfa" }
 };
 
 let trips = JSON.parse(localStorage.getItem("travelTripsV5")) || [];
@@ -61,24 +46,9 @@ function getCurrentTrip() {
 
 function sortedTrips() {
   return [...trips].sort((a, b) => {
-    if (a.startDate !== b.startDate) {
-      return b.startDate.localeCompare(a.startDate);
-    }
-
+    if (a.startDate !== b.startDate) return b.startDate.localeCompare(a.startDate);
     return b.id - a.id;
   });
-}
-
-function openSettingsModal() {
-  const theme = getSavedTheme();
-
-  document.getElementById("mainColorPicker").value = theme.main;
-  document.getElementById("bgColorPicker").value = theme.bg;
-  document.getElementById("settingsModal").classList.add("active");
-}
-
-function closeSettingsModal() {
-  document.getElementById("settingsModal").classList.remove("active");
 }
 
 function getSavedTheme() {
@@ -93,9 +63,19 @@ function applyTheme(theme) {
   document.documentElement.style.setProperty("--bg-color", theme.bg);
 
   const metaThemeColor = document.querySelector("meta[name='theme-color']");
-  if (metaThemeColor) {
-    metaThemeColor.setAttribute("content", theme.main);
-  }
+  if (metaThemeColor) metaThemeColor.setAttribute("content", theme.main);
+}
+
+function openSettingsModal() {
+  const theme = getSavedTheme();
+
+  document.getElementById("mainColorPicker").value = theme.main;
+  document.getElementById("bgColorPicker").value = theme.bg;
+  document.getElementById("settingsModal").classList.add("active");
+}
+
+function closeSettingsModal() {
+  document.getElementById("settingsModal").classList.remove("active");
 }
 
 function applyPresetTheme() {
@@ -133,7 +113,7 @@ function addTrip() {
   const endDate = document.getElementById("tripEndDate").value;
 
   if (!name || !startDate || !endDate) {
-    alert("계획 이름, 시작일, 종료일을 입력해주세요");
+    alert("계획 이름과 여행 기간을 입력해주세요");
     return;
   }
 
@@ -155,6 +135,7 @@ function addTrip() {
   currentTripId = trip.id;
 
   document.getElementById("tripName").value = "";
+  document.getElementById("tripDateRange").value = "";
   document.getElementById("tripStartDate").value = "";
   document.getElementById("tripEndDate").value = "";
 
@@ -203,17 +184,13 @@ function renderHome() {
           </div>
         </div>
 
-        <button
-          class="trip-menu-btn"
-          onclick="event.stopPropagation(); toggleTripMenu(${trip.id})">
+        <button class="trip-menu-btn" onclick="event.stopPropagation(); toggleTripMenu(${trip.id})">
           ⋮
         </button>
       </div>
 
       <div id="tripMenu-${trip.id}" class="trip-menu">
-        <button
-          class="delete-option"
-          onclick="event.stopPropagation(); deleteTripFromHome(${trip.id})">
+        <button class="delete-option" onclick="event.stopPropagation(); deleteTripFromHome(${trip.id})">
           🗑️ 삭제
         </button>
       </div>
@@ -232,9 +209,7 @@ function toggleTripMenu(id) {
 
   closeAllTripMenus();
 
-  if (!isActive) {
-    targetMenu.classList.add("active");
-  }
+  if (!isActive) targetMenu.classList.add("active");
 }
 
 function closeAllTripMenus() {
@@ -255,9 +230,7 @@ function deleteTripFromHome(id) {
 
   trips = trips.filter(item => String(item.id) !== String(id));
 
-  if (String(currentTripId) === String(id)) {
-    currentTripId = null;
-  }
+  if (String(currentTripId) === String(id)) currentTripId = null;
 
   saveTrips();
   closeAllTripMenus();
@@ -318,9 +291,9 @@ function initMapIfNeeded() {
 
   map = L.map("map").setView([34.6937, 135.5023], 13);
 
-  L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap"
-}).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
 
   map.on("click", function(e) {
     document.getElementById("lat").value = e.latlng.lat.toFixed(6);
@@ -386,9 +359,7 @@ function getMarkerIcon(category) {
 function setTempMarker(lat, lng) {
   if (!map) return;
 
-  if (tempMarker) {
-    map.removeLayer(tempMarker);
-  }
+  if (tempMarker) map.removeLayer(tempMarker);
 
   tempMarker = L.marker([lat, lng], {
     icon: L.divIcon({
@@ -454,6 +425,24 @@ async function searchPlace() {
   }
 }
 
+function togglePlaceForm() {
+  const box = document.getElementById("placeFormBox");
+  const btn = document.getElementById("togglePlaceFormBtn");
+
+  if (!box || !btn) return;
+
+  const isOpen = box.style.display === "block";
+
+  if (isOpen) {
+    box.style.display = "none";
+    btn.textContent = "+ 장소 추가하기";
+    cancelEdit();
+  } else {
+    box.style.display = "block";
+    btn.textContent = "닫기";
+  }
+}
+
 function normalizePlaceOrders() {
   const trip = getCurrentTrip();
 
@@ -468,9 +457,7 @@ function normalizePlaceOrders() {
     }
   });
 
-  if (changed) {
-    saveTrips();
-  }
+  if (changed) saveTrips();
 }
 
 function getNextOrder(trip) {
@@ -499,9 +486,7 @@ function buildPlaceData(existingPlace = null) {
   }
 
   if (trip && (date < trip.startDate || date > trip.endDate)) {
-    if (!confirm("선택한 날짜가 여행 기간 밖입니다. 그래도 저장할까요?")) {
-      return null;
-    }
+    if (!confirm("선택한 날짜가 여행 기간 밖입니다. 그래도 저장할까요?")) return null;
   }
 
   let time = "";
@@ -529,13 +514,6 @@ function buildPlaceData(existingPlace = null) {
 }
 
 function savePlace() {
-  const trip = getCurrentTrip();
-
-  if (!trip) {
-    alert("먼저 여행 계획을 선택해주세요.");
-    return;
-  }
-
   if (editingPlaceId) {
     updatePlace();
   } else {
@@ -546,7 +524,10 @@ function savePlace() {
 function addPlace() {
   const trip = getCurrentTrip();
 
-  if (!trip) return;
+  if (!trip) {
+    alert("먼저 여행 계획을 선택해주세요.");
+    return;
+  }
 
   const place = buildPlaceData();
 
@@ -569,6 +550,12 @@ function editPlace(id) {
   const trip = getCurrentTrip();
 
   if (!trip) return;
+
+  const placeFormBox = document.getElementById("placeFormBox");
+  const togglePlaceFormBtn = document.getElementById("togglePlaceFormBtn");
+
+  if (placeFormBox) placeFormBox.style.display = "block";
+  if (togglePlaceFormBtn) togglePlaceFormBtn.textContent = "닫기";
 
   const place = trip.places.find(item => String(item.id) === String(id));
 
@@ -634,9 +621,13 @@ function cancelEdit() {
 
   const savePlaceBtn = document.getElementById("savePlaceBtn");
   const cancelEditBtn = document.getElementById("cancelEditBtn");
+  const placeFormBox = document.getElementById("placeFormBox");
+  const togglePlaceFormBtn = document.getElementById("togglePlaceFormBtn");
 
   if (savePlaceBtn) savePlaceBtn.textContent = "장소 추가";
   if (cancelEditBtn) cancelEditBtn.style.display = "none";
+  if (placeFormBox) placeFormBox.style.display = "none";
+  if (togglePlaceFormBtn) togglePlaceFormBtn.textContent = "+ 장소 추가하기";
 
   clearTempMarker();
 }
@@ -663,19 +654,16 @@ function getFilteredPlaces() {
 
   let filtered = [...trip.places];
 
-  if (filterDate) {
-    filtered = filtered.filter(place => place.date === filterDate);
-  }
-
-  if (filterCategory !== "all") {
-    filtered = filtered.filter(place => place.category === filterCategory);
-  }
+  if (filterDate) filtered = filtered.filter(place => place.date === filterDate);
+  if (filterCategory !== "all") filtered = filtered.filter(place => place.category === filterCategory);
 
   filtered.sort((a, b) => {
     if (a.date !== b.date) return a.date.localeCompare(b.date);
+
     if (Number(a.order || 0) !== Number(b.order || 0)) {
       return Number(a.order || 0) - Number(b.order || 0);
     }
+
     return String(a.time || "").localeCompare(String(b.time || ""));
   });
 
@@ -768,53 +756,25 @@ function renderPlaces() {
 
     card.innerHTML = `
       <div class="drag-hint">↕ 드래그해서 순서 변경</div>
-      
-			<h3>
-				${place.rating === "👍" ? "⭐ " : ""}
-				${place.rating === "👎" ? "❌ " : ""}
-				${place.time ? place.time + " - " : ""}
-				${place.name}
-			</h3>
 
-			<div class="small">
-			  📅 ${place.date}<br>
-			  💰 ${Number(place.cost || 0).toLocaleString()}원<br>
-			  💵 ${Number(place.localCost || 0).toLocaleString()}<br>
-			  ${place.memo || "메모 없음"}
-			</div>
+      <h3>${place.rating === "👍" ? "⭐ " : ""}${place.time ? place.time + " - " : ""}${place.name}</h3>
+
+      <div class="small">
+        ${place.date} / ${categoryNames[place.category]}<br>
+        예상 경비: ${Number(place.cost || 0).toLocaleString()}원<br>
+        현지 통화: ${Number(place.localCost || 0).toLocaleString()}<br>
+        추천: ${place.rating || "아직 없음"}<br>
+        메모: ${place.memo || "없음"}
+      </div>
 
       <span class="badge">${categoryNames[place.category]}</span>
 
       <div class="actions">
-        <button
-          class="icon-btn ${place.rating === '👍' ? 'active-like' : ''}"
-          onclick="event.stopPropagation(); ratePlace(${place.id}, '👍')">
-          👍
-        </button>
-
-        <button
-          class="icon-btn ${place.rating === '👎' ? 'active-dislike' : ''}"
-          onclick="event.stopPropagation(); ratePlace(${place.id}, '👎')">
-          👎
-        </button>
-
-        <button
-          class="edit"
-          onclick="event.stopPropagation(); editPlace(${place.id})">
-          ✏️
-        </button>
-
-        <button
-          class="route"
-          onclick="event.stopPropagation(); ${hasLocation ? `openGoogleMap(${place.lat}, ${place.lng})` : `alert('위치 정보가 없습니다.')`}">
-          🧭
-        </button>
-
-        <button
-          class="danger"
-          onclick="event.stopPropagation(); deletePlace(${place.id})">
-          🗑️
-        </button>
+        <button class="icon-btn ${place.rating === '👍' ? 'active-like' : ''}" onclick="event.stopPropagation(); ratePlace(${place.id}, '👍')">👍</button>
+        <button class="icon-btn ${place.rating === '👎' ? 'active-dislike' : ''}" onclick="event.stopPropagation(); ratePlace(${place.id}, '👎')">👎</button>
+        <button class="edit" onclick="event.stopPropagation(); editPlace(${place.id})">✏️</button>
+        <button class="route" onclick="event.stopPropagation(); ${hasLocation ? `openGoogleMap(${place.lat}, ${place.lng})` : `alert('위치 정보가 없습니다.')`}">🧭</button>
+        <button class="danger" onclick="event.stopPropagation(); deletePlace(${place.id})">🗑️</button>
       </div>
     `;
 
@@ -883,9 +843,7 @@ function reorderPlaces(fromId, toId) {
 
   filtered.forEach((place, index) => {
     const originalPlace = trip.places.find(item => String(item.id) === String(place.id));
-    if (originalPlace) {
-      originalPlace.order = index + 1;
-    }
+    if (originalPlace) originalPlace.order = index + 1;
   });
 
   saveTrips();
@@ -919,9 +877,7 @@ function deletePlace(id) {
 
   trip.places = trip.places.filter(place => place.id !== id);
 
-  if (String(editingPlaceId) === String(id)) {
-    cancelEdit();
-  }
+  if (String(editingPlaceId) === String(id)) cancelEdit();
 
   saveTrips();
   renderCurrentTripInfo();
@@ -972,9 +928,7 @@ function importData(event) {
       saveTrips();
       renderHome();
 
-      if (currentTripId) {
-        openTrip(currentTripId);
-      }
+      if (currentTripId) openTrip(currentTripId);
 
       alert("백업을 불러왔습니다.");
     } catch {
@@ -996,7 +950,7 @@ function initTripDateRangePicker() {
     mode: "range",
     dateFormat: "Y-m-d",
     locale: "ko",
-    minDate: "2020-01-01",
+    minDate: "2000-01-01",
     showMonths: 1,
     disableMobile: true,
     allowInput: false,
@@ -1006,7 +960,7 @@ function initTripDateRangePicker() {
         instance.clear();
         tripStartDate.value = "";
         tripEndDate.value = "";
-        instance.set("minDate", "2020-01-01");
+        instance.set("minDate", "2000-01-01");
       }
     },
 
@@ -1028,7 +982,7 @@ function initTripDateRangePicker() {
         tripEndDate.value = instance.formatDate(end, "Y-m-d");
 
         setTimeout(() => {
-          instance.set("minDate", "2020-01-01");
+          instance.set("minDate", "2000-01-01");
         }, 100);
       }
     },
@@ -1037,7 +991,7 @@ function initTripDateRangePicker() {
       if (selectedDates.length === 0) {
         tripStartDate.value = "";
         tripEndDate.value = "";
-        instance.set("minDate", "2020-01-01");
+        instance.set("minDate", "2000-01-01");
       }
 
       if (selectedDates.length === 1) {
