@@ -768,17 +768,20 @@ function renderPlaces() {
 
     card.innerHTML = `
       <div class="drag-hint">↕ 드래그해서 순서 변경</div>
+      
+			<h3>
+				${place.rating === "👍" ? "⭐ " : ""}
+				${place.rating === "👎" ? "❌ " : ""}
+				${place.time ? place.time + " - " : ""}
+				${place.name}
+			</h3>
 
-      <h3>${place.time ? place.time + " - " : ""}${place.name}</h3>
-
-      <div class="small">
-        ${place.date} / ${categoryNames[place.category]}<br>
-        예상 경비: ${Number(place.cost || 0).toLocaleString()}원<br>
-        현지 통화: ${Number(place.localCost || 0).toLocaleString()}<br>
-        위치: ${hasLocation ? `${place.lat}, ${place.lng}` : "없음"}<br>
-        추천: ${place.rating || "아직 없음"}<br>
-        메모: ${place.memo || "없음"}
-      </div>
+			<div class="small">
+			  📅 ${place.date}<br>
+			  💰 ${Number(place.cost || 0).toLocaleString()}원<br>
+			  💵 ${Number(place.localCost || 0).toLocaleString()}<br>
+			  ${place.memo || "메모 없음"}
+			</div>
 
       <span class="badge">${categoryNames[place.category]}</span>
 
