@@ -9,6 +9,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#111827" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
 
   <style>
     :root {
@@ -338,7 +339,27 @@
     .modal h2 {
       margin-top: 0;
     }
+    
+		.flatpickr-day.disabled,
+		.flatpickr-day.disabled:hover {
+		  color: #cbd5e1 !important;
+		  background: #f1f5f9 !important;
+		  cursor: not-allowed !important;
+		}
 
+		.flatpickr-day.selected,
+		.flatpickr-day.startRange,
+		.flatpickr-day.endRange {
+		  background: var(--main-color) !important;
+		  border-color: var(--main-color) !important;
+		}
+
+		.flatpickr-day.inRange {
+		  background: #dbeafe !important;
+		  border-color: #dbeafe !important;
+		  color: #111827 !important;
+		}
+		
     @media (max-width: 850px) {
       .app-layout {
         flex-direction: column;
@@ -469,11 +490,15 @@
 
       <input type="text" id="tripName" placeholder="계획 이름 예: 오사카 여행" />
 
-      <div class="row">
-        <input type="date" id="tripStartDate" />
-        <input type="date" id="tripEndDate" />
-      </div>
+			<input type="text" id="tripDateRange" placeholder="여행 기간 선택" readonly />
 
+			<input type="hidden" id="tripStartDate" />
+			<input type="hidden" id="tripEndDate" />
+
+		<div class="small">
+  		시작일을 선택하면 시작일 이전 날짜는 종료일로 선택할 수 없습니다.
+		</div>
+		
       <button onclick="addTrip()">만들기</button>
       <button class="sub-btn" onclick="closeNewTripModal()">취소</button>
     </div>
@@ -505,6 +530,8 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

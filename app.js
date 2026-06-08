@@ -982,12 +982,49 @@ function importData(event) {
   reader.readAsText(file);
 }
 
+function initTripDateRangePicker() {
+  const tripDateRange = document.getElementById("tripDateRange");
+  const tripStartDate = document.getElementById("tripStartDate");
+  const tripEndDate = document.getElementById("tripEndDate");
+
+  if (!tripDateRange) return;
+
+  flatpickr(tripDateRange, {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    locale: "ko",
+    minDate: "today",
+    showMonths: 1,
+    disableMobile: true,
+
+    onChange: function(selectedDates, dateStr, instance) {
+      if (selectedDates.length === 1) {
+        const start = selectedDates[0];
+
+        tripStartDate.value = instance.formatDate(start, "Y-m-d");
+        tripEndDate.value = "";
+
+        instance.set("minDate", start);
+      }
+
+      if (selectedDates.length === 2) {
+        const start = selectedDates[0];
+        const end = selectedDates[1];
+
+        tripStartDate.value = instance.formatDate(start, "Y-m-d");
+        tripEndDate.value = instance.formatDate(end, "Y-m-d");
+      }
+    }
+  });
+}
+
 document.addEventListener("click", function() {
   closeAllTripMenus();
 });
 
 applyTheme(getSavedTheme());
 createHourMinuteOptions();
+initTripDateRangePicker();
 renderHome();
 
 if ("serviceWorker" in navigator) {
