@@ -318,9 +318,9 @@ function initMapIfNeeded() {
 
   map = L.map("map").setView([34.6937, 135.5023], 13);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap"
-  }).addTo(map);
+  L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
 
   map.on("click", function(e) {
     document.getElementById("lat").value = e.latlng.lat.toFixed(6);
