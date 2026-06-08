@@ -18,15 +18,41 @@ const categoryNames = {
   etc: "기타"
 };
 
-let trips = JSON.parse(localStorage.getItem("travelTripsV4")) || [];
-let currentTripId = localStorage.getItem("currentTripIdV4") || null;
+const themePresets = {
+  midnight: {
+    main: "#111827",
+    bg: "#f3f4f6"
+  },
+  purple: {
+    main: "#4c1d95",
+    bg: "#f5f3ff"
+  },
+  emerald: {
+    main: "#065f46",
+    bg: "#ecfdf5"
+  },
+  wine: {
+    main: "#7f1d1d",
+    bg: "#fef2f2"
+  },
+  teal: {
+    main: "#134e4a",
+    bg: "#f0fdfa"
+  }
+};
+
+let trips = JSON.parse(localStorage.getItem("travelTripsV5")) || [];
+let currentTripId = localStorage.getItem("currentTripIdV5") || null;
 let markers = [];
 let map;
 let tempMarker = null;
+let routeLine = null;
+let editingPlaceId = null;
+let draggedPlaceId = null;
 
 function saveTrips() {
-  localStorage.setItem("travelTripsV4", JSON.stringify(trips));
-  localStorage.setItem("currentTripIdV4", currentTripId || "");
+  localStorage.setItem("travelTripsV5", JSON.stringify(trips));
+  localStorage.setItem("currentTripIdV5", currentTripId || "");
 }
 
 function getCurrentTrip() {
@@ -41,6 +67,55 @@ function sortedTrips() {
 
     return b.id - a.id;
   });
+}
+
+function openSettingsModal() {
+  const theme = getSavedTheme();
+
+  document.getElementById("mainColorPicker").value = theme.main;
+  document.getElementById("bgColorPicker").value = theme.bg;
+  document.getElementById("settingsModal").classList.add("active");
+}
+
+function closeSettingsModal() {
+  document.getElementById("settingsModal").classList.remove("active");
+}
+
+function getSavedTheme() {
+  return JSON.parse(localStorage.getItem("travelThemeV1")) || {
+    main: "#111827",
+    bg: "#f3f4f6"
+  };
+}
+
+function applyTheme(theme) {
+  document.documentElement.style.setProperty("--main-color", theme.main);
+  document.documentElement.style.setProperty("--bg-color", theme.bg);
+
+  const metaThemeColor = document.querySelector("meta[name='theme-color']");
+  if (metaThemeColor) {
+    metaThemeColor.setAttribute("content", theme.main);
+  }
+}
+
+function applyPresetTheme() {
+  const presetKey = document.getElementById("themePreset").value;
+
+  if (!presetKey || !themePresets[presetKey]) return;
+
+  document.getElementById("mainColorPicker").value = themePresets[presetKey].main;
+  document.getElementById("bgColorPicker").value = themePresets[presetKey].bg;
+}
+
+function saveThemeSettings() {
+  const theme = {
+    main: document.getElementById("mainColorPicker").value,
+    bg: document.getElementById("bgColorPicker").value
+  };
+
+  localStorage.setItem("travelThemeV1", JSON.stringify(theme));
+  applyTheme(theme);
+  closeSettingsModal();
 }
 
 function openNewTripModal() {
@@ -107,7 +182,7 @@ function renderHome() {
 
   list.forEach(trip => {
     const totalCost = trip.places.reduce((sum, place) => sum + Number(place.cost || 0), 0);
-    const totalLocalCost = trip.places.reduce((sum, place) => sum + Number(place.localCost || 0),0);
+    const totalLocalCost = trip.places.reduce((sum, place) => sum + Number(place.localCost || 0), 0);
 
     const card = document.createElement("div");
     card.className = "trip-card";
@@ -119,9 +194,8 @@ function renderHome() {
           <h3>${trip.name}</h3>
           <div class="small">
             기간: ${trip.startDate} ~ ${trip.endDate}<br>
-            저장된 장소: ${trip.places.length}곳<br>
+            저장된 장소: ${trip.places.length}곳
           </div>
-        </div>
 
           <div class="cost-big">
             ₩${totalCost.toLocaleString()}<br>
@@ -207,6 +281,7 @@ function openTrip(id) {
 
   setTimeout(() => {
     map.invalidateSize();
+    normalizePlaceOrders();
     renderCurrentTripInfo();
     renderPlaces();
   }, 100);
@@ -218,6 +293,7 @@ function goHome() {
   document.getElementById("backBtn").style.display = "none";
   document.getElementById("headerTitle").textContent = "Travel Planner";
 
+  cancelEdit();
   renderHome();
 }
 
@@ -246,12 +322,12 @@ function initMapIfNeeded() {
     attribution: "© OpenStreetMap"
   }).addTo(map);
 
- map.on("click", function(e) {
-  document.getElementById("lat").value = e.latlng.lat.toFixed(6);
-  document.getElementById("lng").value = e.latlng.lng.toFixed(6);
+  map.on("click", function(e) {
+    document.getElementById("lat").value = e.latlng.lat.toFixed(6);
+    document.getElementById("lng").value = e.latlng.lng.toFixed(6);
 
-  setTempMarker(e.latlng.lat, e.latlng.lng);
-});
+    setTempMarker(e.latlng.lat, e.latlng.lng);
+  });
 }
 
 function clearMarkers() {
@@ -259,11 +335,19 @@ function clearMarkers() {
 
   markers.forEach(marker => map.removeLayer(marker));
   markers = [];
+
+  if (routeLine) {
+    map.removeLayer(routeLine);
+    routeLine = null;
+  }
 }
 
 function createHourMinuteOptions() {
   const hourList = document.getElementById("hourList");
   const minuteList = document.getElementById("minuteList");
+
+  hourList.innerHTML = "";
+  minuteList.innerHTML = "";
 
   for (let i = 0; i < 24; i++) {
     const option = document.createElement("option");
@@ -298,6 +382,7 @@ function getMarkerIcon(category) {
     iconAnchor: [12, 24]
   });
 }
+
 function setTempMarker(lat, lng) {
   if (!map) return;
 
@@ -325,6 +410,13 @@ function setTempMarker(lat, lng) {
   }).addTo(map)
     .bindPopup("선택한 위치")
     .openPopup();
+}
+
+function clearTempMarker() {
+  if (tempMarker) {
+    map.removeLayer(tempMarker);
+    tempMarker = null;
+  }
 }
 
 async function searchPlace() {
@@ -356,18 +448,39 @@ async function searchPlace() {
     document.getElementById("lng").value = Number(result.lon).toFixed(6);
 
     map.setView([result.lat, result.lon], 16);
+    setTempMarker(result.lat, result.lon);
   } catch (error) {
     alert("검색에 실패했습니다. 위도와 경도를 직접 입력해주세요.");
   }
 }
 
-function addPlace() {
+function normalizePlaceOrders() {
   const trip = getCurrentTrip();
 
-  if (!trip) {
-    alert("먼저 여행 계획을 선택해주세요.");
-    return;
+  if (!trip) return;
+
+  let changed = false;
+
+  trip.places.forEach((place, index) => {
+    if (place.order === undefined || place.order === null) {
+      place.order = index + 1;
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    saveTrips();
   }
+}
+
+function getNextOrder(trip) {
+  if (!trip.places.length) return 1;
+
+  return Math.max(...trip.places.map(place => Number(place.order || 0))) + 1;
+}
+
+function buildPlaceData(existingPlace = null) {
+  const trip = getCurrentTrip();
 
   const name = document.getElementById("placeName").value.trim();
   const category = document.getElementById("category").value;
@@ -380,33 +493,64 @@ function addPlace() {
   const localCost = Number(document.getElementById("localCost").value || 0);
   const memo = document.getElementById("memo").value.trim();
 
-  if (!name || !date || isNaN(lat) || isNaN(lng)) {
-    alert("장소 이름, 날짜, 위도, 경도는 꼭 입력해야 합니다.");
-    return;
+  if (!name || !date) {
+    alert("장소 이름과 날짜는 꼭 입력해야 합니다.");
+    return null;
   }
 
-  if (date < trip.startDate || date > trip.endDate) {
-    if (!confirm("선택한 날짜가 여행 기간 밖입니다. 그래도 추가할까요?")) {
-      return;
+  if (trip && (date < trip.startDate || date > trip.endDate)) {
+    if (!confirm("선택한 날짜가 여행 기간 밖입니다. 그래도 저장할까요?")) {
+      return null;
     }
   }
 
-  const hour = hourInput ? hourInput.padStart(2, "0") : "00";
-  const minute = minuteInput ? minuteInput.padStart(2, "0") : "00";
+  let time = "";
 
-  const place = {
-    id: Date.now(),
+  if (hourInput || minuteInput) {
+    const hour = hourInput ? hourInput.padStart(2, "0") : "00";
+    const minute = minuteInput ? minuteInput.padStart(2, "0") : "00";
+    time = `${hour}:${minute}`;
+  }
+
+  return {
+    id: existingPlace ? existingPlace.id : Date.now(),
     name,
     category,
     date,
-    time: `${hour}:${minute}`,
-    lat,
-    lng,
+    time,
+    lat: isNaN(lat) ? null : lat,
+    lng: isNaN(lng) ? null : lng,
     cost,
     localCost,
     memo,
-    rating: ""
+    rating: existingPlace ? existingPlace.rating || "" : "",
+    order: existingPlace ? existingPlace.order : getNextOrder(trip)
   };
+}
+
+function savePlace() {
+  const trip = getCurrentTrip();
+
+  if (!trip) {
+    alert("먼저 여행 계획을 선택해주세요.");
+    return;
+  }
+
+  if (editingPlaceId) {
+    updatePlace();
+  } else {
+    addPlace();
+  }
+}
+
+function addPlace() {
+  const trip = getCurrentTrip();
+
+  if (!trip) return;
+
+  const place = buildPlaceData();
+
+  if (!place) return;
 
   trip.places.push(place);
 
@@ -416,19 +560,92 @@ function addPlace() {
   renderPlaces();
   clearTempMarker();
 
-  map.setView([lat, lng], 15);
+  if (place.lat !== null && place.lng !== null) {
+    map.setView([place.lat, place.lng], 15);
+  }
 }
 
-function clearTempMarker() {
-  if (tempMarker) {
-    map.removeLayer(tempMarker);
-    tempMarker = null;
+function editPlace(id) {
+  const trip = getCurrentTrip();
+
+  if (!trip) return;
+
+  const place = trip.places.find(item => String(item.id) === String(id));
+
+  if (!place) return;
+
+  editingPlaceId = id;
+
+  document.getElementById("placeName").value = place.name;
+  document.getElementById("category").value = place.category;
+  document.getElementById("date").value = place.date;
+
+  if (place.time) {
+    const [hour, minute] = place.time.split(":");
+    document.getElementById("hour").value = hour || "";
+    document.getElementById("minute").value = minute || "";
+  } else {
+    document.getElementById("hour").value = "";
+    document.getElementById("minute").value = "";
   }
+
+  document.getElementById("lat").value = place.lat ?? "";
+  document.getElementById("lng").value = place.lng ?? "";
+  document.getElementById("cost").value = place.cost || "";
+  document.getElementById("localCost").value = place.localCost || "";
+  document.getElementById("memo").value = place.memo || "";
+
+  document.getElementById("savePlaceBtn").textContent = "수정 완료";
+  document.getElementById("cancelEditBtn").style.display = "block";
+
+  if (place.lat !== null && place.lng !== null) {
+    map.setView([place.lat, place.lng], 16);
+    setTempMarker(place.lat, place.lng);
+  }
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function updatePlace() {
+  const trip = getCurrentTrip();
+
+  if (!trip) return;
+
+  const index = trip.places.findIndex(place => String(place.id) === String(editingPlaceId));
+
+  if (index === -1) return;
+
+  const updatedPlace = buildPlaceData(trip.places[index]);
+
+  if (!updatedPlace) return;
+
+  trip.places[index] = updatedPlace;
+
+  saveTrips();
+  cancelEdit();
+  renderCurrentTripInfo();
+  renderPlaces();
+  clearTempMarker();
+}
+
+function cancelEdit() {
+  editingPlaceId = null;
+  clearPlaceForm();
+
+  const savePlaceBtn = document.getElementById("savePlaceBtn");
+  const cancelEditBtn = document.getElementById("cancelEditBtn");
+
+  if (savePlaceBtn) savePlaceBtn.textContent = "장소 추가";
+  if (cancelEditBtn) cancelEditBtn.style.display = "none";
+
+  clearTempMarker();
 }
 
 function clearPlaceForm() {
   document.getElementById("placeName").value = "";
   document.getElementById("searchKeyword").value = "";
+  document.getElementById("hour").value = "";
+  document.getElementById("minute").value = "";
   document.getElementById("lat").value = "";
   document.getElementById("lng").value = "";
   document.getElementById("cost").value = "";
@@ -456,7 +673,10 @@ function getFilteredPlaces() {
 
   filtered.sort((a, b) => {
     if (a.date !== b.date) return a.date.localeCompare(b.date);
-    return a.time.localeCompare(b.time);
+    if (Number(a.order || 0) !== Number(b.order || 0)) {
+      return Number(a.order || 0) - Number(b.order || 0);
+    }
+    return String(a.time || "").localeCompare(String(b.time || ""));
   });
 
   return filtered;
@@ -473,7 +693,7 @@ function renderSummary(filtered) {
 
   const totalPlaces = filtered.length;
   const totalCost = filtered.reduce((sum, place) => sum + Number(place.cost || 0), 0);
-  const totalLocalCost = filtered.reduce((sum, place) => sum + Number(place.localCost || 0),0);
+  const totalLocalCost = filtered.reduce((sum, place) => sum + Number(place.localCost || 0), 0);
   const categoryCount = {};
 
   filtered.forEach(place => {
@@ -488,9 +708,25 @@ function renderSummary(filtered) {
     <b>일정 요약</b><br>
     표시된 장소: ${totalPlaces}곳<br>
     예상 경비: ${totalCost.toLocaleString()}원<br>
-    현지 통화 합계: ${totalLocalCost.toLocaleString()}
-    ${categoryText || "카테고리 없음"}
+    현지 통화 합계: ${totalLocalCost.toLocaleString()}<br>
+    ${categoryText || "카테고리 없음"}<br>
+    <span class="small">카드를 드래그해서 순서를 바꿀 수 있습니다.</span>
   `;
+}
+
+function renderRouteLine(filtered) {
+  const routePoints = filtered
+    .filter(place => place.lat !== null && place.lng !== null)
+    .map(place => [place.lat, place.lng]);
+
+  if (routePoints.length >= 2) {
+    routeLine = L.polyline(routePoints, {
+      color: "#111827",
+      weight: 4,
+      opacity: 0.7,
+      dashArray: "8, 8"
+    }).addTo(map);
+  }
 }
 
 function renderPlaces() {
@@ -504,31 +740,42 @@ function renderPlaces() {
   renderSummary(filtered);
 
   filtered.forEach(place => {
-    const marker = L.marker([place.lat, place.lng], {
-      icon: getMarkerIcon(place.category)
-    })
-      .addTo(map)
-      .bindPopup(`
-        <b>${place.name}</b><br>
-        ${place.date} ${place.time}<br>
-        ${categoryNames[place.category]}<br>
-        예상 경비: ${Number(place.cost || 0).toLocaleString()}원<br>
-        현지 통화: ${Number(place.localCost || 0).toLocaleString()}
-        추천: ${place.rating || "아직 없음"}
-      `);
+    let marker = null;
+    const hasLocation = place.lat !== null && place.lng !== null;
 
-    markers.push(marker);
+    if (hasLocation) {
+      marker = L.marker([place.lat, place.lng], {
+        icon: getMarkerIcon(place.category)
+      })
+        .addTo(map)
+        .bindPopup(`
+          <b>${place.name}</b><br>
+          ${place.date} ${place.time || ""}<br>
+          ${categoryNames[place.category]}<br>
+          예상 경비: ${Number(place.cost || 0).toLocaleString()}원<br>
+          현지 통화: ${Number(place.localCost || 0).toLocaleString()}<br>
+          추천: ${place.rating || "아직 없음"}
+        `);
+
+      markers.push(marker);
+    }
 
     const card = document.createElement("div");
     card.className = "place-card";
     card.style.borderLeftColor = categoryColors[place.category];
+    card.draggable = true;
+    card.dataset.placeId = place.id;
 
     card.innerHTML = `
-      <h3>${place.time} - ${place.name}</h3>
+      <div class="drag-hint">↕ 드래그해서 순서 변경</div>
+
+      <h3>${place.time ? place.time + " - " : ""}${place.name}</h3>
 
       <div class="small">
         ${place.date} / ${categoryNames[place.category]}<br>
         예상 경비: ${Number(place.cost || 0).toLocaleString()}원<br>
+        현지 통화: ${Number(place.localCost || 0).toLocaleString()}<br>
+        위치: ${hasLocation ? `${place.lat}, ${place.lng}` : "없음"}<br>
         추천: ${place.rating || "아직 없음"}<br>
         메모: ${place.memo || "없음"}
       </div>
@@ -549,8 +796,14 @@ function renderPlaces() {
         </button>
 
         <button
+          class="edit"
+          onclick="event.stopPropagation(); editPlace(${place.id})">
+          ✏️
+        </button>
+
+        <button
           class="route"
-          onclick="event.stopPropagation(); openGoogleMap(${place.lat}, ${place.lng})">
+          onclick="event.stopPropagation(); ${hasLocation ? `openGoogleMap(${place.lat}, ${place.lng})` : `alert('위치 정보가 없습니다.')`}">
           🧭
         </button>
 
@@ -562,7 +815,14 @@ function renderPlaces() {
       </div>
     `;
 
+    card.addEventListener("dragstart", handleDragStart);
+    card.addEventListener("dragover", handleDragOver);
+    card.addEventListener("drop", handleDrop);
+    card.addEventListener("dragend", handleDragEnd);
+
     card.onclick = () => {
+      if (!hasLocation) return;
+
       map.setView([place.lat, place.lng], 16);
       marker.openPopup();
     };
@@ -570,10 +830,63 @@ function renderPlaces() {
     list.appendChild(card);
   });
 
-  if (filtered.length > 0) {
-    const bounds = filtered.map(place => [place.lat, place.lng]);
+  renderRouteLine(filtered);
+
+  const placesWithLocation = filtered.filter(place => place.lat !== null && place.lng !== null);
+
+  if (placesWithLocation.length > 0) {
+    const bounds = placesWithLocation.map(place => [place.lat, place.lng]);
     map.fitBounds(bounds, { padding: [40, 40] });
   }
+}
+
+function handleDragStart(event) {
+  draggedPlaceId = event.currentTarget.dataset.placeId;
+  event.currentTarget.classList.add("dragging");
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+
+  const targetPlaceId = event.currentTarget.dataset.placeId;
+
+  if (!draggedPlaceId || draggedPlaceId === targetPlaceId) return;
+
+  reorderPlaces(draggedPlaceId, targetPlaceId);
+}
+
+function handleDragEnd(event) {
+  event.currentTarget.classList.remove("dragging");
+  draggedPlaceId = null;
+}
+
+function reorderPlaces(fromId, toId) {
+  const trip = getCurrentTrip();
+
+  if (!trip) return;
+
+  const filtered = getFilteredPlaces();
+  const fromIndex = filtered.findIndex(place => String(place.id) === String(fromId));
+  const toIndex = filtered.findIndex(place => String(place.id) === String(toId));
+
+  if (fromIndex === -1 || toIndex === -1) return;
+
+  const moved = filtered.splice(fromIndex, 1)[0];
+  filtered.splice(toIndex, 0, moved);
+
+  filtered.forEach((place, index) => {
+    const originalPlace = trip.places.find(item => String(item.id) === String(place.id));
+    if (originalPlace) {
+      originalPlace.order = index + 1;
+    }
+  });
+
+  saveTrips();
+  renderPlaces();
 }
 
 function ratePlace(id, rating) {
@@ -603,6 +916,10 @@ function deletePlace(id) {
 
   trip.places = trip.places.filter(place => place.id !== id);
 
+  if (String(editingPlaceId) === String(id)) {
+    cancelEdit();
+  }
+
   saveTrips();
   renderCurrentTripInfo();
   renderPlaces();
@@ -614,7 +931,7 @@ function openGoogleMap(lat, lng) {
 
 function exportData() {
   const dataStr = JSON.stringify({
-    version: 4,
+    version: 5,
     trips
   }, null, 2);
 
@@ -623,7 +940,7 @@ function exportData() {
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "travel-planner-backup-v4.json";
+  a.download = "travel-planner-backup-v5.json";
   a.click();
 
   URL.revokeObjectURL(url);
@@ -669,6 +986,7 @@ document.addEventListener("click", function() {
   closeAllTripMenus();
 });
 
+applyTheme(getSavedTheme());
 createHourMinuteOptions();
 renderHome();
 
