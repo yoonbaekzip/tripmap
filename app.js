@@ -58,12 +58,12 @@ function addTrip() {
   const endDate = document.getElementById("tripEndDate").value;
 
   if (!name || !startDate || !endDate) {
-    alert("계획 이름, 시작일, 종료일을 입력해줘.");
+    alert("계획 이름, 시작일, 종료일을 입력해주세요");
     return;
   }
 
   if (startDate > endDate) {
-    alert("시작일이 종료일보다 늦을 수 없어.");
+    alert("시작일이 종료일보다 늦을 수 없습니다");
     return;
   }
 
@@ -98,8 +98,8 @@ function renderHome() {
   if (list.length === 0) {
     tripList.innerHTML = `
       <div class="empty">
-        아직 여행 계획이 없어.<br>
-        + New Trip 버튼으로 새 여행을 만들어줘.
+        아직 여행 계획이 없습니다<br>
+        + New Trip 버튼으로 새 여행을 만들어주세요
       </div>
     `;
     return;
@@ -174,7 +174,7 @@ function deleteTripFromHome(id) {
 
   if (!trip) return;
 
-  if (!confirm(`'${trip.name}' 여행을 삭제할까?\n저장된 장소도 모두 삭제돼.`)) {
+  if (!confirm(`'${trip.name}' 여행을 삭제할까요?\n저장된 장소도 모두 삭제됩니다.`)) {
     closeAllTripMenus();
     return;
   }
@@ -226,7 +226,7 @@ function renderCurrentTripInfo() {
   const trip = getCurrentTrip();
 
   if (!trip) {
-    box.innerHTML = "선택된 여행이 없어.";
+    box.innerHTML = "선택된 여행이 없습니다";
     return;
   }
 
@@ -331,7 +331,7 @@ async function searchPlace() {
   const keyword = document.getElementById("searchKeyword").value.trim();
 
   if (!keyword) {
-    alert("검색어를 입력해줘.");
+    alert("검색어를 입력해주세요");
     return;
   }
 
@@ -345,7 +345,7 @@ async function searchPlace() {
     const data = await response.json();
 
     if (!data.length) {
-      alert("검색 결과가 없어. 장소명을 조금 더 자세히 입력해봐.");
+      alert("검색 결과가 없습니다. 장소명을 조금 더 자세히 입력해주세요.");
       return;
     }
 
@@ -357,7 +357,7 @@ async function searchPlace() {
 
     map.setView([result.lat, result.lon], 16);
   } catch (error) {
-    alert("검색에 실패했어. 위도와 경도를 직접 입력해줘.");
+    alert("검색에 실패했습니다. 위도와 경도를 직접 입력해주세요.");
   }
 }
 
@@ -365,7 +365,7 @@ function addPlace() {
   const trip = getCurrentTrip();
 
   if (!trip) {
-    alert("먼저 여행 계획을 선택해줘.");
+    alert("먼저 여행 계획을 선택해주세요.");
     return;
   }
 
@@ -381,12 +381,12 @@ function addPlace() {
   const memo = document.getElementById("memo").value.trim();
 
   if (!name || !date || isNaN(lat) || isNaN(lng)) {
-    alert("장소 이름, 날짜, 위도, 경도는 꼭 입력해야 해.");
+    alert("장소 이름, 날짜, 위도, 경도는 꼭 입력해야 합니다.");
     return;
   }
 
   if (date < trip.startDate || date > trip.endDate) {
-    if (!confirm("선택한 날짜가 여행 기간 밖이야. 그래도 추가할까?")) {
+    if (!confirm("선택한 날짜가 여행 기간 밖입니다. 그래도 추가할까요?")) {
       return;
     }
   }
@@ -467,7 +467,7 @@ function renderSummary(filtered) {
   const trip = getCurrentTrip();
 
   if (!trip) {
-    summaryBox.innerHTML = "여행을 선택해줘.";
+    summaryBox.innerHTML = "여행을 선택해주세요.";
     return;
   }
 
@@ -599,7 +599,7 @@ function deletePlace(id) {
 
   if (!trip) return;
 
-  if (!confirm("이 장소를 삭제할까?")) return;
+  if (!confirm("이 장소를 삭제할까요?")) return;
 
   trip.places = trip.places.filter(place => place.id !== id);
 
@@ -643,7 +643,7 @@ function importData(event) {
       if (imported.trips && Array.isArray(imported.trips)) {
         trips = imported.trips;
       } else {
-        alert("올바른 백업 파일이 아니야.");
+        alert("올바른 백업 파일이 아닙니다.");
         return;
       }
 
@@ -656,9 +656,9 @@ function importData(event) {
         openTrip(currentTripId);
       }
 
-      alert("백업을 불러왔어.");
+      alert("백업을 불러왔습니다.");
     } catch {
-      alert("파일을 불러오지 못했어.");
+      alert("파일을 불러오지 못했습니다.");
     }
   };
 
