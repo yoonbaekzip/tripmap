@@ -996,6 +996,16 @@ function initTripDateRangePicker() {
     minDate: "today",
     showMonths: 1,
     disableMobile: true,
+    allowInput: false,
+
+    onOpen: function(selectedDates, dateStr, instance) {
+      if (selectedDates.length === 2) {
+        instance.clear();
+        tripStartDate.value = "";
+        tripEndDate.value = "";
+        instance.set("minDate", "today");
+      }
+    },
 
     onChange: function(selectedDates, dateStr, instance) {
       if (selectedDates.length === 1) {
@@ -1013,6 +1023,22 @@ function initTripDateRangePicker() {
 
         tripStartDate.value = instance.formatDate(start, "Y-m-d");
         tripEndDate.value = instance.formatDate(end, "Y-m-d");
+
+        setTimeout(() => {
+          instance.set("minDate", "today");
+        }, 100);
+      }
+    },
+
+    onClose: function(selectedDates, dateStr, instance) {
+      if (selectedDates.length === 0) {
+        tripStartDate.value = "";
+        tripEndDate.value = "";
+        instance.set("minDate", "today");
+      }
+
+      if (selectedDates.length === 1) {
+        tripEndDate.value = "";
       }
     }
   });
